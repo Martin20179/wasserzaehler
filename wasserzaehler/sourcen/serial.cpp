@@ -30,7 +30,10 @@ bool tryReconnect=false;
 int cntConnections=0;
 
 /*
-        Öffne  Serielle USB Verbindung
+	Oeffnet die serielle USB-Verbindung zur AquaPerla und konfiguriert den Port
+	(19200 Baud, 8 Datenbits, keine Paritaet, 1 Stopbit, kein Flow-Control).
+	Der Port ist fest auf /dev/ttyACM0 eingestellt und muss bei abweichendem
+	Geraetepfad hier angepasst werden.
 */
 int openConnection(int *USBCon)
 {
@@ -104,9 +107,21 @@ double timeMs_LastLiter = 0.0;
 
 bool nurDurchfluss = false;
 
+/*
+	Sendet die aktuell faelligen Kommandos an die AquaPerla, liest und prueft die
+	Antworten und uebertraegt die ausgewerteten Messwerte per HTTP an openHAB.
+
+	Es gibt zwei Abfragetakte:
+	  - Durchfluss (nur CMD_VERBRAUCH_SEIT_IBN) im Takt MIN_LOOP_TIME_MS
+	  - alle uebrigen Werte im Takt LOOP_TIME_ALLGEMEINE_COMMANDOS_MS
+	Welche Kommandos faellig sind, wird anhand der vergangenen Zeit entschieden.
+	Fuer jedes Kommando wird ein Telegramm aufgebaut (inkl. CRC), gesendet und die
+	Antwort ausgewertet. Der aktuelle Durchfluss wird dabei aus der Aenderung des
+	Gesamtverbrauchs berechnet.
+*/
 char serialRead(int *USBCon, float *ptrfWirkarbeitBezugTotal_kWh, float *ptrfLeistung_W, float *ptrfLeistungMin_W, float *ptrfLeistungMax_W)
 {
-	// erst senden dann empfangen
+	// erst senden, dann empfangen
 	//char sendCmds[] = SEND_COMMANDS;
 	char outBuf[16];
 	char inBuf[256];
@@ -172,6 +187,7 @@ char serialRead(int *USBCon, float *ptrfWirkarbeitBezugTotal_kWh, float *ptrfLei
 	//cmd[0][1] = CMD_VERBRAUCH_SEIT_IBN_LENGTH;
 
 
+	// Fuer jedes faellige Kommando: Telegramm aufbauen, senden und Antwort auswerten
 	for (int i = 0; i < cmdPos; i++)
 	{
 		int pos = 0;
@@ -388,10 +404,16 @@ char serialRead(int *USBCon, float *ptrfWirkarbeitBezugTotal_kWh, float *ptrfLei
 	return 0;
 }
 
+/*
+	Prueft eine empfangene Antwort auf Gueltigkeit:
+	  - korrektes Start- und Stop-Byte
+	  - korrekte Pruefsumme (CRC = Summe aller Bytes ohne die letzten beiden)
+	Rueckgabe 0 bedeutet gueltig, ein negativer Wert signalisiert einen Fehler.
+*/
 int checkInputBuf(char *inBuf, int length)
 {
 	int res = 0;
-	// prüfe Start und Stop Byte
+	// pruefe Start- und Stop-Byte
 	if ((inBuf[0] != START_BYTE) && (inBuf[length] != STOP_BYTE))
 	{
 		printf("Fehler: Start oder Stop Byte nicht vorhanden\n");
@@ -425,6 +447,9 @@ int checkInputBuf(char *inBuf, int length)
 	return res;
 }
 
+/*
+	Schliesst die serielle Verbindung zur AquaPerla.
+*/
 int closeConnection(int * USBCon)
 {
 	close(*USBCon);

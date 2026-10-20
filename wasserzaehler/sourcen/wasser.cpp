@@ -19,8 +19,17 @@ using namespace std;
 using std::string;
 
 extern bool tryReconnect;
+
 /*
 	Hauptfunktion
+
+	Baut die serielle Verbindung zur AquaPerla auf und liest in einer Endlosschleife
+	zyklisch die Zaehlerdaten aus. Die ausgelesenen Werte werden innerhalb von
+	serialRead() per HTTP an openHAB gesendet. Tritt bei der Kommunikation ein
+	Timeout auf, wird die Verbindung geschlossen und neu aufgebaut.
+
+	Die float-Parameter fWirkarbeit.../fLeistung... stammen aus einem verwandten
+	Projekt (Stromablesung) und werden hier nicht ausgewertet.
 */
 int main()
 {
@@ -32,31 +41,27 @@ int main()
 
 	cout << "*** Starte Wasserablesung ***\n\n";
 	
-	// Probiere USB/Seriell Verbindung zu öffnen
+	// Serielle USB-Verbindung zur AquaPerla oeffnen
 	printf("Open Connection...\n");
 	openConnection(&USBCon);
 		
 	while(true)
 	{
-		//printf("Serial Read...\n");
+		// Faellige Kommandos senden, Antworten lesen und Werte per HTTP uebertragen
 		serialRead(&USBCon, &fWirkarbeitBezugTotal_kWh, &fLeistung_W, &fLeistungMin_W, &fLeistungMax_W);
-		// wurden plausible Werte geschrieben?
-		//if ( (fWirkarbeitBezugTotal_kWh != -1.0) && (fLeistung_W != -1.0) )
-		//	http(&fWirkarbeitBezugTotal_kWh, &fLeistung_W);
 
 		if(tryReconnect)
 		{
 			tryReconnect=false;
-			// Ein Fehler ist aufgetreten (Timeout während Selection)
-			// Neu Verbindung durchführen
+			// Es ist ein Fehler aufgetreten (Timeout waehrend select)
+			// -> Verbindung schliessen und neu aufbauen
 			closeConnection(&USBCon);
-			// Probiere USB/Seriell Verbindung zu öffnen
 			printf("Open Connection...\n");
 			openConnection(&USBCon);
 
 		}
 			
-		usleep(MIN_LOOP_TIME_MS*1000);	// damit die CPU etwas entlasstet ist
+		usleep(MIN_LOOP_TIME_MS*1000);	// kurze Pause, um die CPU zu entlasten
 	}
 	
 	closeConnection(&USBCon);

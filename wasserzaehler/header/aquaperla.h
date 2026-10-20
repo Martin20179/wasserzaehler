@@ -1,9 +1,19 @@
 #ifndef AQUA_PERLA_HEADER
 #define AQUA_PERLA_HEADER
+
+/*
+	Protokoll-Konstanten der BWT AquaPerla
+
+	Jedes Telegramm ist wie folgt aufgebaut:
+		START_BYTE | KOMMANDO | ANZAHL PARAMETER | [PARAMETER ...] | CRC | STOP_BYTE
+	Die CRC ist die Summe aller vorherigen Bytes (nur das niederwertige Byte zaehlt).
+	Weiter unten befinden sich Beispieltelegramme fuer die einzelnen Kommandos.
+*/
+
 #define DEBUG 3
 
-#define START_BYTE		0x0D
-#define STOP_BYTE		0x0A
+#define START_BYTE		0x0D	// Startkennung eines Telegramms
+#define STOP_BYTE		0x0A	// Endekennung eines Telegramms
 
 #define CMD_Anzahl		256		// Anzahl Kommandos (Zeilen)
 //#define CMD_Length		2		// Kommandolänge (Spalten)

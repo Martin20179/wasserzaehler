@@ -8,6 +8,12 @@
 using namespace std;
 using std::string;
 
+/*
+	Uebertraegt einen Wert per curl (HTTP POST) an openHAB.
+	Der uebergebene httpString enthaelt bereits Wert, Ziel-URL und Item-Name;
+	hier wird nur noch der curl-Kopf (HTTP_HEAD) vorangestellt und der Befehl
+	ueber die Shell (system()) ausgefuehrt.
+*/
 int http(char *httpString)
 {
 	char strToSend[256];
